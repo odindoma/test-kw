@@ -1,4 +1,4 @@
-// Основной JavaScript файл для анализа рекламных кампаний
+// Основной JavaScript файл для анализа рекламных кампаний - ИСПРАВЛЕННАЯ ВЕРСИЯ
 
 document.addEventListener('DOMContentLoaded', function() {
     // Инициализация тултипов Bootstrap
@@ -24,23 +24,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Инициализация функций загрузки файлов
     initFileUpload();
-    
+
     // Инициализация фильтров
     initFilters();
-    
+
     // Инициализация графиков
     initCharts();
 });
 
 /**
- * Инициализация загрузки файлов
+ * Инициализация загрузки файлов - ИСПРАВЛЕННАЯ ВЕРСИЯ
  */
 function initFileUpload() {
+    console.log('Инициализация загрузки файлов...');
+    
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('csvFile');
     const uploadForm = document.getElementById('uploadForm');
-    
-    if (!uploadArea || !fileInput) return;
+
+    if (!uploadArea || !fileInput) {
+        console.log('Элементы загрузки не найдены на этой странице');
+        return;
+    }
+
+    console.log('Элементы загрузки найдены:', { uploadArea, fileInput });
 
     // Обработка drag & drop
     uploadArea.addEventListener('dragover', function(e) {
@@ -59,6 +66,7 @@ function initFileUpload() {
         
         const files = e.dataTransfer.files;
         if (files.length > 0) {
+            console.log('Файл перетащен:', files[0]);
             fileInput.files = files;
             updateFileInfo(files[0]);
         }
@@ -66,13 +74,19 @@ function initFileUpload() {
 
     // Обработка клика по области загрузки
     uploadArea.addEventListener('click', function() {
+        console.log('Клик по области загрузки');
         fileInput.click();
     });
 
-    // Обработка выбора файла
-    fileInput.addEventListener('change', function() {
+    // Обработка выбора файла - ИСПРАВЛЕНО
+    fileInput.addEventListener('change', function(e) {
+        console.log('Файл выбран через диалог:', this.files);
         if (this.files.length > 0) {
+            console.log('Обновляем информацию о файле:', this.files[0]);
             updateFileInfo(this.files[0]);
+        } else {
+            console.log('Файл не выбран, скрываем информацию');
+            hideFileInfo();
         }
     });
 
@@ -80,25 +94,101 @@ function initFileUpload() {
     if (uploadForm) {
         uploadForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            console.log('Отправка формы загрузки');
             uploadFile();
+        });
+    }
+
+    // Обработчик кнопки сброса фильтров
+    const resetFiltersBtn = document.getElementById('resetFilters');
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', function() {
+            window.location.href = window.location.pathname;
         });
     }
 }
 
 /**
- * Обновление информации о выбранном файле
+ * Обновление информации о выбранном файле - ИСПРАВЛЕННАЯ ВЕРСИЯ
  */
 function updateFileInfo(file) {
+    console.log('updateFileInfo вызвана с файлом:', file);
+    
     const fileInfo = document.getElementById('fileInfo');
     const fileName = document.getElementById('fileName');
     const fileSize = document.getElementById('fileSize');
     const uploadBtn = document.getElementById('uploadBtn');
     
-    if (fileInfo && fileName && fileSize && uploadBtn) {
+    console.log('Найденные элементы:', { fileInfo, fileName, fileSize, uploadBtn });
+
+    if (!fileInfo || !fileName || !fileSize || !uploadBtn) {
+        console.error('Не все элементы найдены для отображения информации о файле');
+        return;
+    }
+
+    // Проверяем тип файла
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        console.warn('Выбран не CSV файл:', file.name);
+        showAlert('Пожалуйста, выберите CSV файл', 'warning');
+        hideFileInfo();
+        return;
+    }
+
+    // Проверяем размер файла (максимум 50MB)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+        console.warn('Файл слишком большой:', file.size);
+        showAlert('Файл слишком большой. Максимальный размер: 50MB', 'warning');
+        hideFileInfo();
+        return;
+    }
+
+    try {
+        // Устанавливаем информацию о файле
         fileName.textContent = file.name;
         fileSize.textContent = formatFileSize(file.size);
+        
+        // Показываем блок с информацией
         fileInfo.style.display = 'block';
+        fileInfo.style.visibility = 'visible';
+        fileInfo.classList.remove('d-none');
+        
+        // Активируем кнопку загрузки
         uploadBtn.disabled = false;
+        uploadBtn.classList.remove('disabled');
+        
+        console.log('Информация о файле обновлена успешно');
+        console.log('fileInfo display:', fileInfo.style.display);
+        console.log('fileInfo visibility:', fileInfo.style.visibility);
+        
+        // Добавляем небольшую задержку для отладки
+        setTimeout(() => {
+            console.log('Проверка через 100ms - fileInfo display:', fileInfo.style.display);
+            console.log('Проверка через 100ms - fileInfo visibility:', fileInfo.style.visibility);
+        }, 100);
+        
+    } catch (error) {
+        console.error('Ошибка при обновлении информации о файле:', error);
+    }
+}
+
+/**
+ * Скрытие информации о файле
+ */
+function hideFileInfo() {
+    console.log('hideFileInfo вызвана');
+    
+    const fileInfo = document.getElementById('fileInfo');
+    const uploadBtn = document.getElementById('uploadBtn');
+    
+    if (fileInfo) {
+        fileInfo.style.display = 'none';
+        fileInfo.classList.add('d-none');
+    }
+    
+    if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.classList.add('disabled');
     }
 }
 
@@ -114,21 +204,24 @@ function formatFileSize(bytes) {
 }
 
 /**
- * Загрузка файла
+ * Загрузка файла - УЛУЧШЕННАЯ ВЕРСИЯ
  */
 function uploadFile() {
+    console.log('Начало загрузки файла');
+    
     const formData = new FormData();
     const fileInput = document.getElementById('csvFile');
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
     const uploadBtn = document.getElementById('uploadBtn');
     
-    if (!fileInput.files[0]) {
+    if (!fileInput || !fileInput.files[0]) {
         showAlert('Пожалуйста, выберите файл для загрузки', 'warning');
         return;
     }
     
-    formData.append('csv_file', fileInput.files[0]);
+    const file = fileInput.files[0];
+    formData.append('csv_file', file);
     
     // Показываем прогресс-бар
     if (progressContainer) {
@@ -138,105 +231,131 @@ function uploadFile() {
     // Отключаем кнопку загрузки
     if (uploadBtn) {
         uploadBtn.disabled = true;
-        uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Загрузка...';
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Загрузка...';
     }
     
-    // Отправляем файл
-    fetch('api/upload.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert(`Файл успешно загружен! Импортировано записей: ${data.imported}`, 'success');
-            
-            // Обновляем статистику на странице
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-        } else {
-            showAlert('Ошибка загрузки: ' + data.message, 'danger');
+    // Создаем XMLHttpRequest для отслеживания прогресса
+    const xhr = new XMLHttpRequest();
+    
+    // Обработчик прогресса загрузки
+    xhr.upload.addEventListener('progress', function(e) {
+        if (e.lengthComputable && progressBar) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            progressBar.style.width = percentComplete + '%';
+            progressBar.setAttribute('aria-valuenow', percentComplete);
+            progressBar.textContent = Math.round(percentComplete) + '%';
         }
-    })
-    .catch(error => {
-        console.error('Ошибка:', error);
-        showAlert('Произошла ошибка при загрузке файла', 'danger');
-    })
-    .finally(() => {
-        // Скрываем прогресс-бар
+    });
+    
+    // Обработчик завершения загрузки
+    xhr.addEventListener('load', function() {
+        console.log('Загрузка завершена, статус:', xhr.status);
+        
         if (progressContainer) {
             progressContainer.style.display = 'none';
         }
         
-        // Включаем кнопку загрузки
         if (uploadBtn) {
             uploadBtn.disabled = false;
             uploadBtn.innerHTML = '<i class="fas fa-upload me-1"></i>Загрузить файл';
         }
+        
+        try {
+            const response = JSON.parse(xhr.responseText);
+            console.log('Ответ сервера:', response);
+            
+            if (response.success) {
+                showAlert(response.message || 'Файл успешно загружен!', 'success');
+                
+                // Очищаем форму
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+                hideFileInfo();
+                
+                // Перенаправляем на страницу аналитики через 2 секунды
+                setTimeout(() => {
+                    window.location.href = 'analytics.php';
+                }, 2000);
+                
+            } else {
+                showAlert(response.message || 'Ошибка при загрузке файла', 'danger');
+            }
+        } catch (error) {
+            console.error('Ошибка парсинга ответа:', error);
+            showAlert('Ошибка при обработке ответа сервера', 'danger');
+        }
     });
+    
+    // Обработчик ошибок
+    xhr.addEventListener('error', function() {
+        console.error('Ошибка загрузки файла');
+        
+        if (progressContainer) {
+            progressContainer.style.display = 'none';
+        }
+        
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fas fa-upload me-1"></i>Загрузить файл';
+        }
+        
+        showAlert('Произошла ошибка при загрузке файла', 'danger');
+    });
+    
+    // Отправляем запрос
+    xhr.open('POST', '../api/upload.php');
+    xhr.send(formData);
+}
+
+/**
+ * Показ уведомления
+ */
+function showAlert(message, type = 'info') {
+    console.log('Показываем уведомление:', message, type);
+    
+    // Удаляем существующие алерты
+    const existingAlerts = document.querySelectorAll('.alert.dynamic-alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    // Создаем новый алерт
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show dynamic-alert`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Вставляем алерт в начало контейнера
+    const container = document.querySelector('.container');
+    if (container) {
+        container.insertBefore(alertDiv, container.firstChild);
+    }
+    
+    // Автоматически скрываем через 5 секунд
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
 }
 
 /**
  * Инициализация фильтров
  */
 function initFilters() {
-    const filterForm = document.getElementById('filterForm');
+    // Обработчик кнопки сброса фильтров
     const resetBtn = document.getElementById('resetFilters');
-    
-    if (filterForm) {
-        filterForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            applyFilters();
-        });
-    }
-    
     if (resetBtn) {
         resetBtn.addEventListener('click', function() {
-            resetFilters();
+            // Очищаем все поля формы
+            const form = this.closest('form');
+            if (form) {
+                form.reset();
+                // Перенаправляем на страницу без параметров
+                window.location.href = window.location.pathname;
+            }
         });
-    }
-    
-    // Автоматическое применение фильтров при изменении
-    const filterInputs = document.querySelectorAll('.auto-filter');
-    filterInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            applyFilters();
-        });
-    });
-}
-
-/**
- * Применение фильтров
- */
-function applyFilters() {
-    const formData = new FormData(document.getElementById('filterForm'));
-    const params = new URLSearchParams(formData);
-    
-    // Показываем индикатор загрузки
-    showLoadingOverlay();
-    
-    // Обновляем URL с параметрами фильтра
-    const newUrl = window.location.pathname + '?' + params.toString();
-    window.history.pushState({}, '', newUrl);
-    
-    // Перезагружаем страницу с новыми параметрами
-    location.reload();
-}
-
-/**
- * Сброс фильтров
- */
-function resetFilters() {
-    const filterForm = document.getElementById('filterForm');
-    if (filterForm) {
-        filterForm.reset();
-        
-        // Удаляем параметры из URL
-        window.history.pushState({}, '', window.location.pathname);
-        
-        // Перезагружаем страницу
-        location.reload();
     }
 }
 
@@ -244,58 +363,28 @@ function resetFilters() {
  * Инициализация графиков
  */
 function initCharts() {
-    // Инициализация графика роста кампаний
-    initCampaignGrowthChart();
-    
-    // Инициализация круговой диаграммы уникальности
-    initUniquenessChart();
-    
-    // Инициализация графика активности страниц
-    initPageActivityChart();
+    // Инициализация будет выполнена на соответствующих страницах
+    console.log('Инициализация графиков...');
 }
 
-/**
- * График роста кампаний
- */
-function initCampaignGrowthChart() {
-    const chartElement = document.getElementById('campaignGrowthChart');
-    if (!chartElement) return;
-    
-    // Получаем данные для графика
-    fetch('api/chart_data.php?type=campaign_growth')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                renderCampaignGrowthChart(chartElement, data.data);
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка загрузки данных графика:', error);
-        });
-}
+// Дополнительные функции для аналитики (будут использоваться на других страницах)
 
 /**
- * Отрисовка графика роста кампаний
+ * Рендеринг графика роста кампаний
  */
-function renderCampaignGrowthChart(element, data) {
-    // Используем Chart.js для отрисовки
-    const ctx = element.getContext('2d');
+function renderCampaignGrowthChart(data) {
+    const ctx = document.getElementById('campaignGrowthChart');
+    if (!ctx) return;
     
-    new Chart(ctx, {
+    new Chart(ctx.getContext('2d'), {
         type: 'line',
         data: {
             labels: data.map(item => item.date),
             datasets: [{
                 label: 'Новые кампании',
-                data: data.map(item => item.daily_new_campaigns),
+                data: data.map(item => item.count),
                 borderColor: 'rgb(75, 192, 192)',
                 backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.1
-            }, {
-                label: 'Всего активных',
-                data: data.map(item => item.daily_total_campaigns),
-                borderColor: 'rgb(255, 99, 132)',
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
                 tension: 0.1
             }]
         },
@@ -304,7 +393,7 @@ function renderCampaignGrowthChart(element, data) {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Рост кампаний по дням'
+                    text: 'Рост количества кампаний по дням'
                 }
             },
             scales: {
@@ -317,101 +406,37 @@ function renderCampaignGrowthChart(element, data) {
 }
 
 /**
- * Показать алерт
+ * Рендеринг графика уникальности креативов
  */
-function showAlert(message, type = 'info') {
-    const alertContainer = document.getElementById('alertContainer') || document.body;
+function renderCreativeUniquenessChart(data) {
+    const ctx = document.getElementById('creativeUniquenessChart');
+    if (!ctx) return;
     
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    alertContainer.insertBefore(alertDiv, alertContainer.firstChild);
-    
-    // Автоматически скрыть через 5 секунд
-    setTimeout(() => {
-        const bsAlert = new bootstrap.Alert(alertDiv);
-        bsAlert.close();
-    }, 5000);
+    new Chart(ctx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Уникальные', 'Повторяющиеся'],
+            datasets: [{
+                data: [data.unique, data.duplicates],
+                backgroundColor: ['#28a745', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Уникальность креативов'
+                }
+            }
+        }
+    });
 }
 
-/**
- * Показать оверлей загрузки
- */
-function showLoadingOverlay() {
-    const overlay = document.createElement('div');
-    overlay.className = 'loading-overlay';
-    overlay.id = 'loadingOverlay';
-    overlay.innerHTML = `
-        <div class="loading-spinner">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Загрузка...</span>
-            </div>
-            <div class="mt-2">Загрузка данных...</div>
-        </div>
-    `;
-    
-    document.body.appendChild(overlay);
-}
-
-/**
- * Скрыть оверлей загрузки
- */
-function hideLoadingOverlay() {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.remove();
-    }
-}
-
-/**
- * Утилиты для работы с данными
- */
-const Utils = {
-    /**
-     * Форматирование числа с разделителями тысяч
-     */
-    formatNumber: function(num) {
-        return new Intl.NumberFormat('ru-RU').format(num);
-    },
-    
-    /**
-     * Форматирование даты
-     */
-    formatDate: function(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ru-RU');
-    },
-    
-    /**
-     * Форматирование даты и времени
-     */
-    formatDateTime: function(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleString('ru-RU');
-    },
-    
-    /**
-     * Обрезка текста
-     */
-    truncateText: function(text, maxLength = 100) {
-        if (text.length <= maxLength) return text;
-        return text.substring(0, maxLength) + '...';
-    },
-    
-    /**
-     * Экранирование HTML
-     */
-    escapeHtml: function(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-};
-
-// Экспорт утилит в глобальную область видимости
-window.Utils = Utils;
+// Экспорт функций для использования в других скриптах
+window.uploadFile = uploadFile;
+window.updateFileInfo = updateFileInfo;
+window.showAlert = showAlert;
+window.renderCampaignGrowthChart = renderCampaignGrowthChart;
+window.renderCreativeUniquenessChart = renderCreativeUniquenessChart;
 
