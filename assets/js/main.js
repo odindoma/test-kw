@@ -148,24 +148,15 @@ function updateFileInfo(file) {
         fileName.textContent = file.name;
         fileSize.textContent = formatFileSize(file.size);
         
-        // Показываем блок с информацией
-        fileInfo.style.display = 'block';
-        fileInfo.style.visibility = 'visible';
+        // Показываем блок с информацией - ИСПРАВЛЕНО
         fileInfo.classList.remove('d-none');
+        fileInfo.style.display = 'block';
         
         // Активируем кнопку загрузки
         uploadBtn.disabled = false;
         uploadBtn.classList.remove('disabled');
         
         console.log('Информация о файле обновлена успешно');
-        console.log('fileInfo display:', fileInfo.style.display);
-        console.log('fileInfo visibility:', fileInfo.style.visibility);
-        
-        // Добавляем небольшую задержку для отладки
-        setTimeout(() => {
-            console.log('Проверка через 100ms - fileInfo display:', fileInfo.style.display);
-            console.log('Проверка через 100ms - fileInfo visibility:', fileInfo.style.visibility);
-        }, 100);
         
     } catch (error) {
         console.error('Ошибка при обновлении информации о файле:', error);
@@ -173,7 +164,7 @@ function updateFileInfo(file) {
 }
 
 /**
- * Скрытие информации о файле
+ * Скрытие информации о файле - ИСПРАВЛЕННАЯ ВЕРСИЯ
  */
 function hideFileInfo() {
     console.log('hideFileInfo вызвана');
@@ -182,8 +173,8 @@ function hideFileInfo() {
     const uploadBtn = document.getElementById('uploadBtn');
     
     if (fileInfo) {
-        fileInfo.style.display = 'none';
         fileInfo.classList.add('d-none');
+        fileInfo.style.display = 'none';
     }
     
     if (uploadBtn) {
@@ -226,6 +217,7 @@ function uploadFile() {
     // Показываем прогресс-бар
     if (progressContainer) {
         progressContainer.style.display = 'block';
+        progressContainer.classList.remove('d-none');
     }
     
     // Отключаем кнопку загрузки
@@ -253,6 +245,7 @@ function uploadFile() {
         
         if (progressContainer) {
             progressContainer.style.display = 'none';
+            progressContainer.classList.add('d-none');
         }
         
         if (uploadBtn) {
@@ -293,6 +286,7 @@ function uploadFile() {
         
         if (progressContainer) {
             progressContainer.style.display = 'none';
+            progressContainer.classList.add('d-none');
         }
         
         if (uploadBtn) {
@@ -439,4 +433,3 @@ window.updateFileInfo = updateFileInfo;
 window.showAlert = showAlert;
 window.renderCampaignGrowthChart = renderCampaignGrowthChart;
 window.renderCreativeUniquenessChart = renderCreativeUniquenessChart;
-
