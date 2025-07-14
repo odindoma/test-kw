@@ -12,41 +12,64 @@ class CampaignAnalyzer {
     }
     
     /**
-     * Загрузить данные из CSV файла
+     * Загрузить данные из CSV файла - ИСПРАВЛЕННАЯ ВЕРСИЯ
      */
     public function importCsvFile($filePath) {
         if (!file_exists($filePath)) {
-            throw new Exception('Файл не найден: ' . $filePath);
+            return [
+                'success' => false,
+                'message' => 'Файл не найден: ' . $filePath
+            ];
         }
         
         $handle = fopen($filePath, 'r');
         if (!$handle) {
-            throw new Exception('Не удалось открыть файл: ' . $filePath);
+            return [
+                'success' => false,
+                'message' => 'Не удалось открыть файл: ' . $filePath
+            ];
         }
         
         // Читаем заголовки
         $headers = fgetcsv($handle, 0, "\t");
         if (!$headers) {
-            throw new Exception('Не удалось прочитать заголовки CSV файла');
+            fclose($handle);
+            return [
+                'success' => false,
+                'message' => 'Не удалось прочитать заголовки CSV файла'
+            ];
         }
         
         $importedCount = 0;
+        $skippedCount = 0;
         $errorCount = 0;
+        $totalCount = 0;
         $errors = [];
         
         $this->db->beginTransaction();
         
         try {
             while (($data = fgetcsv($handle, 0, "\t")) !== false) {
+                $totalCount++;
+                
                 try {
                     if (count($data) >= count($headers)) {
                         $row = array_combine($headers, $data);
+                        
+                        // Проверяем на дубликаты перед вставкой
+                        if ($this->isDuplicateCampaign($row)) {
+                            $skippedCount++;
+                            continue;
+                        }
+                        
                         $this->insertCampaignData($row);
                         $importedCount++;
+                    } else {
+                        $skippedCount++;
                     }
                 } catch (Exception $e) {
                     $errorCount++;
-                    $errors[] = "Строка " . ($importedCount + $errorCount + 1) . ": " . $e->getMessage();
+                    $errors[] = "Строка " . $totalCount . ": " . $e->getMessage();
                     
                     // Прерываем импорт если слишком много ошибок
                     if ($errorCount > 100) {
@@ -58,21 +81,95 @@ class CampaignAnalyzer {
             $this->db->commit();
             
             // Обновляем статистику после импорта
-            $this->updatePageStatistics();
-            $this->updateDailyStats();
+            if ($importedCount > 0) {
+                $this->updatePageStatistics();
+                $this->updateDailyStats();
+            }
             
         } catch (Exception $e) {
             $this->db->rollback();
-            throw $e;
+            fclose($handle);
+            return [
+                'success' => false,
+                'message' => 'Ошибка при импорте: ' . $e->getMessage()
+            ];
         } finally {
             fclose($handle);
         }
         
+        // Формируем сообщение о результате
+        $message = "Импорт завершен: ";
+        $message .= "добавлено {$importedCount} новых записей";
+        
+        if ($skippedCount > 0) {
+            $message .= ", пропущено {$skippedCount} дубликатов";
+        }
+        
+        if ($errorCount > 0) {
+            $message .= ", ошибок: {$errorCount}";
+        }
+        
         return [
-            'imported' => $importedCount,
-            'errors' => $errorCount,
-            'error_details' => $errors
+            'success' => true,
+            'message' => $message,
+            'imported_count' => $importedCount,
+            'skipped_count' => $skippedCount,
+            'error_count' => $errorCount,
+            'total_count' => $totalCount,
+            'errors' => $errors
         ];
+    }
+    
+    /**
+     * Проверить, является ли кампания дубликатом - НОВАЯ ФУНКЦИЯ
+     */
+    private function isDuplicateCampaign($row) {
+        // Разделяем Resource ID на Page ID и Ad ID
+        $resourceId = $row['Resource ID'] ?? '';
+        $parts = explode('/', $resourceId);
+        $pageId = $parts[0] ?? '';
+        $adId = $parts[1] ?? '';
+        
+        // Получаем ключевые поля для проверки дубликатов
+        $advertiser = $row['Advertiser'] ?? '';
+        $campaignName = $row['Campaign'] ?? '';
+        $adTitle = $row['Ad Title'] ?? '';
+        $adDescription = $row['Ad Description'] ?? '';
+        $adMediaHash = $row['Ad Media Hash'] ?? '';
+        $targetUrl = $row['Target URL'] ?? '';
+        $firstShownAt = $this->parseDateTime($row['First Shown At'] ?? '');
+        
+        // Проверяем по уникальной комбинации полей
+        $sql = "SELECT COUNT(*) as count FROM campaigns WHERE 
+                advertiser = :advertiser 
+                AND resource_id = :resource_id 
+                AND campaign_name = :campaign_name 
+                AND ad_title = :ad_title 
+                AND ad_description = :ad_description 
+                AND target_url = :target_url
+                AND first_shown_at = :first_shown_at";
+        
+        $params = [
+            'advertiser' => $advertiser,
+            'resource_id' => $resourceId,
+            'campaign_name' => $campaignName,
+            'ad_title' => $adTitle,
+            'ad_description' => $adDescription,
+            'target_url' => $targetUrl,
+            'first_shown_at' => $firstShownAt
+        ];
+        
+        $result = $this->db->fetchOne($sql, $params);
+        
+        return $result['count'] > 0;
+    }
+    
+    /**
+     * Получить количество кампаний - НОВАЯ ФУНКЦИЯ
+     */
+    public function getCampaignsCount() {
+        $result = $this->db->fetchOne("SELECT COUNT(*) as count FROM campaigns");
+        return $result['count'] ?? 0;
     }
     
     /**
@@ -121,35 +218,53 @@ class CampaignAnalyzer {
     }
     
     /**
-     * Анализировать тексты объявлений
+     * Анализировать тексты объявлений - ИСПРАВЛЕННАЯ ВЕРСИЯ
      */
     private function analyzeAdTexts($campaignId, $title, $description) {
         if (!empty($title)) {
             $titleHash = md5(trim($title));
-            $this->db->insert(
-                "INSERT INTO ad_text_analysis (campaign_id, text_hash, text_content, text_type) 
-                 VALUES (:campaign_id, :text_hash, :text_content, :text_type)",
-                [
-                    'campaign_id' => $campaignId,
-                    'text_hash' => $titleHash,
-                    'text_content' => $title,
-                    'text_type' => 'title'
-                ]
+            
+            // Проверяем, нет ли уже такого хеша
+            $existingTitle = $this->db->fetchOne(
+                "SELECT COUNT(*) as count FROM ad_text_analysis WHERE text_hash = :hash AND text_type = 'title'",
+                ['hash' => $titleHash]
             );
+            
+            if ($existingTitle['count'] == 0) {
+                $this->db->insert(
+                    "INSERT INTO ad_text_analysis (campaign_id, text_hash, text_content, text_type) 
+                     VALUES (:campaign_id, :text_hash, :text_content, :text_type)",
+                    [
+                        'campaign_id' => $campaignId,
+                        'text_hash' => $titleHash,
+                        'text_content' => $title,
+                        'text_type' => 'title'
+                    ]
+                );
+            }
         }
         
         if (!empty($description)) {
             $descHash = md5(trim($description));
-            $this->db->insert(
-                "INSERT INTO ad_text_analysis (campaign_id, text_hash, text_content, text_type) 
-                 VALUES (:campaign_id, :text_hash, :text_content, :text_type)",
-                [
-                    'campaign_id' => $campaignId,
-                    'text_hash' => $descHash,
-                    'text_content' => $description,
-                    'text_type' => 'description'
-                ]
+            
+            // Проверяем, нет ли уже такого хеша
+            $existingDesc = $this->db->fetchOne(
+                "SELECT COUNT(*) as count FROM ad_text_analysis WHERE text_hash = :hash AND text_type = 'description'",
+                ['hash' => $descHash]
             );
+            
+            if ($existingDesc['count'] == 0) {
+                $this->db->insert(
+                    "INSERT INTO ad_text_analysis (campaign_id, text_hash, text_content, text_type) 
+                     VALUES (:campaign_id, :text_hash, :text_content, :text_type)",
+                    [
+                        'campaign_id' => $campaignId,
+                        'text_hash' => $descHash,
+                        'text_content' => $description,
+                        'text_type' => 'description'
+                    ]
+                );
+            }
         }
     }
     
@@ -330,4 +445,3 @@ class CampaignAnalyzer {
     }
 }
 ?>
-
