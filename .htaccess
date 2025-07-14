@@ -1,0 +1,111 @@
+# Конфигурация Apache для анализа рекламных кампаний
+
+# Включаем модуль перезаписи
+RewriteEngine On
+
+# Безопасность - запрещаем доступ к конфигурационным файлам
+<Files "*.sql">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files "config/*.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Запрещаем доступ к скрытым файлам
+<Files ".*">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Разрешаем доступ к .htaccess
+<Files ".htaccess">
+    Order allow,deny
+    Allow from all
+</Files>
+
+# Настройки безопасности
+ServerTokens Prod
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+# Настройки для загрузки файлов
+php_value upload_max_filesize 50M
+php_value post_max_size 50M
+php_value max_execution_time 300
+php_value memory_limit 256M
+
+# Сжатие контента
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
+
+# Кэширование статических файлов
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType application/pdf "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+</IfModule>
+
+# Настройки MIME типов
+AddType application/javascript .js
+AddType text/css .css
+
+# Перенаправления для API
+RewriteRule ^api/(.*)$ api/$1 [L]
+
+# Обработка ошибок
+ErrorDocument 404 /index.php
+ErrorDocument 403 /index.php
+ErrorDocument 500 /index.php
+
+# Защита от hotlinking
+RewriteCond %{HTTP_REFERER} !^$
+RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?yourdomain.com [NC]
+RewriteRule \.(jpg|jpeg|png|gif|svg)$ - [NC,F,L]
+
+# Блокировка подозрительных запросов
+RewriteCond %{QUERY_STRING} (<|%3C).*script.*(>|%3E) [NC,OR]
+RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
+RewriteCond %{QUERY_STRING} ^.*(\[|\]|\(|\)|<|>|ê|"|;|\?|\*|=$).* [NC,OR]
+RewriteCond %{QUERY_STRING} ^.*("|'|<|>|\|{||).* [NC,OR]
+RewriteCond %{QUERY_STRING} ^.*(%0|%A|%B|%C|%D|%E|%F|127\.0).* [NC,OR]
+RewriteCond %{QUERY_STRING} ^.*(globals|encode|localhost|loopback).* [NC,OR]
+RewriteCond %{QUERY_STRING} ^.*(request|select|insert|union|declare).* [NC]
+RewriteRule ^(.*)$ - [F,L]
+
+# Ограничение размера запроса
+LimitRequestBody 52428800
+
+# Настройки для PHP
+<IfModule mod_php7.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_value error_log /var/log/php_errors.log
+</IfModule>
+
+# Принудительное использование HTTPS (раскомментируйте при необходимости)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
