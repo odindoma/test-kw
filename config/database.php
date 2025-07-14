@@ -7,8 +7,8 @@ class DatabaseConfig {
     // Настройки подключения к базе данных
     const DB_HOST = 'localhost';
     const DB_NAME = 'ad_campaigns_analysis';
-    const DB_USER = 'root';
-    const DB_PASS = '';
+    const DB_USER = 'homestead';
+    const DB_PASS = 'secret';
     const DB_CHARSET = 'utf8mb4';
     
     // Настройки для загрузки файлов

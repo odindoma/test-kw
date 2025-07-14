@@ -14,8 +14,8 @@ echo "=== Установка системы анализа рекламных к
 // Настройки подключения к базе данных
 $config = [
     'host' => 'localhost',
-    'username' => 'root',
-    'password' => '',
+    'username' => 'homestead',
+    'password' => 'secret',
     'database' => 'ad_campaigns_analysis'
 ];
 
