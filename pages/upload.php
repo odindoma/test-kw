@@ -19,7 +19,7 @@ if (isset($_SESSION['message'])) {
     <title>Загрузка данных - Анализ рекламных кампаний</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="../assets/css/style.css" rel="stylesheet">
+    <link href="../assets/css/upload.css" rel="stylesheet">
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -54,6 +54,7 @@ if (isset($_SESSION['message'])) {
     </nav>
 
     <div class="container mt-4">
+        <!-- Сообщения -->
         <div id="alertContainer">
             <?php if ($message): ?>
                 <div class="alert alert-<?php echo $messageType === 'error' ? 'danger' : $messageType; ?> alert-dismissible fade show">
@@ -63,142 +64,73 @@ if (isset($_SESSION['message'])) {
             <?php endif; ?>
         </div>
 
-        <div class="row">
-            <div class="col-12">
-                <h1 class="mb-4">
-                    <i class="fas fa-upload text-primary me-2"></i>
-                    Загрузка данных рекламных кампаний
-                </h1>
-                <p class="lead">
-                    Загрузите CSV файл с данными рекламных кампаний Facebook для анализа уникальности креативов, клонирования и активности страниц.
-                </p>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-file-csv text-success me-2"></i>
-                            Выберите CSV файл
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="uploadForm" enctype="multipart/form-data" method="post">
-                            <div class="upload-area" id="uploadArea">
-                                <div class="upload-icon">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                </div>
-                                <h4>Перетащите файл сюда или нажмите для выбора</h4>
-                                <p class="text-muted">
-                                    Поддерживаются CSV файлы с разделением табуляцией<br>
-                                    Максимальный размер файла: 50 МБ
-                                </p>
-                                <input type="file" id="csvFile" name="csv_file" accept=".csv" style="display: none;">
-                            </div>
-                            
-                            <!-- Информация о выбранном файле -->
-                            <div id="fileInfo" style="display: none;" class="mt-3">
-                                <div class="alert alert-info">
-                                    <h6><i class="fas fa-file me-2"></i>Выбранный файл:</h6>
-                                    <p class="mb-1"><strong>Имя:</strong> <span id="fileName"></span></p>
-                                    <p class="mb-0"><strong>Размер:</strong> <span id="fileSize"></span></p>
-                                </div>
-                            </div>
-
-                            <!-- Прогресс загрузки -->
-                            <div id="progressContainer" style="display: none;" class="mt-3">
-                                <label class="form-label">Прогресс загрузки:</label>
-                                <div class="progress">
-                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
-                                         role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                                        0%
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-3">
-                                <button type="submit" id="uploadBtn" class="btn btn-primary btn-lg disabled" disabled>
-                                    <i class="fas fa-upload me-1"></i>
-                                    Загрузить файл
-                                </button>
-                                <button type="button" class="btn btn-secondary btn-lg ms-2" onclick="resetForm()">
-                                    <i class="fas fa-times me-1"></i>
-                                    Сбросить
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-info-circle text-info me-2"></i>
-                            Требования к файлу
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <h6>Формат файла:</h6>
-                        <ul class="list-unstyled">
-                            <li><i class="fas fa-check text-success me-2"></i>CSV с разделением табуляцией</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Кодировка UTF-8</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Первая строка - заголовки</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Максимум 50 МБ</li>
-                        </ul>
-
-                        <h6 class="mt-3">Обязательные колонки:</h6>
-                        <ul class="list-unstyled small">
-                            <li><code>Advertiser</code> - Рекламодатель</li>
-                            <li><code>Resource ID</code> - Page ID/Ad ID</li>
-                            <li><code>Region</code> - Регион показа</li>
-                            <li><code>Campaign</code> - Название кампании</li>
-                            <li><code>Ad Title</code> - Заголовок</li>
-                            <li><code>Ad Description</code> - Описание</li>
-                            <li><code>Ad Media Type</code> - Тип медиа</li>
-                            <li><code>Ad Media Hash</code> - Хеш медиа</li>
-                            <li><code>Target URL</code> - Целевая ссылка</li>
-                            <li><code>First Shown At</code> - Дата начала</li>
-                            <li><code>Last Shown At</code> - Дата окончания</li>
-                        </ul>
-
-                        <div class="alert alert-warning mt-3">
-                            <small>
-                                <i class="fas fa-exclamation-triangle me-1"></i>
-                                <strong>Важно:</strong> Resource ID должен содержать Page ID и Ad ID, разделенные символом "/"
-                            </small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card mt-3">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-question-circle text-warning me-2"></i>
-                            Помощь
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="small">
-                            После успешной загрузки файла вы будете перенаправлены на страницу аналитики, 
-                            где сможете изучить:
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="upload-container">
+                    <div class="text-center mb-4">
+                        <h2 class="mb-3">
+                            <i class="fas fa-upload text-primary me-2"></i>
+                            Загрузка CSV файла
+                        </h2>
+                        <p class="text-muted">
+                            Выберите CSV файл с данными рекламных кампаний Facebook для анализа
                         </p>
-                        <ul class="small">
-                            <li>Уникальность креативов</li>
-                            <li>Клонирование кампаний</li>
-                            <li>Активность страниц Facebook</li>
-                            <li>Статистику по рекламодателям</li>
-                        </ul>
-                        
-                        <div class="mt-3">
-                            <a href="analytics.php" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-chart-bar me-1"></i>
-                                Перейти к аналитике
-                            </a>
+                    </div>
+
+                    <form id="uploadForm" enctype="multipart/form-data" method="post">
+                        <div class="file-input-wrapper">
+                            <input type="file" id="csvFile" name="csv_file" accept=".csv" required>
+                            <label for="csvFile" class="file-label">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span class="label-text">Выбрать CSV файл</span>
+                                <span class="file-name"></span>
+                            </label>
                         </div>
+
+                        <button type="submit" class="btn-upload" id="uploadBtn">
+                            <i class="fas fa-upload"></i>
+                            Загрузить файл
+                        </button>
+
+                        <!-- Статус загрузки -->
+                        <div id="uploadStatus" class="upload-status" style="display: none;">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                            Обработка файла...
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="info-card">
+                    <h5 class="card-title">
+                        <i class="fas fa-info-circle text-info me-2"></i>
+                        Требования к файлу
+                    </h5>
+                    <ul class="requirements-list">
+                        <li><i class="fas fa-check text-success me-2"></i>Формат: CSV</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Разделитель: табуляция</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Кодировка: UTF-8</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Размер: до 50 МБ</li>
+                    </ul>
+
+                    <div class="mt-3">
+                        <h6>Обязательные колонки:</h6>
+                        <div class="columns-list">
+                            <code>Advertiser</code>, <code>Resource ID</code>, <code>Region</code>, 
+                            <code>Campaign</code>, <code>Ad Title</code>, <code>Ad Description</code>, 
+                            <code>Ad Media Type</code>, <code>Ad Media Hash</code>, <code>Target URL</code>, 
+                            <code>First Shown At</code>, <code>Last Shown At</code>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <a href="analytics.php" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-chart-bar me-1"></i>
+                            Перейти к аналитике
+                        </a>
                     </div>
                 </div>
             </div>
@@ -206,100 +138,6 @@ if (isset($_SESSION['message'])) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../assets/js/main.js"></script>
-    
-    <script>
-        // Дополнительные функции для страницы загрузки
-        
-        function resetForm() {
-            console.log('Сброс формы');
-            
-            const fileInput = document.getElementById('csvFile');
-            const fileInfo = document.getElementById('fileInfo');
-            const uploadBtn = document.getElementById('uploadBtn');
-            const progressContainer = document.getElementById('progressContainer');
-            
-            // Очищаем input файла
-            if (fileInput) {
-                fileInput.value = '';
-            }
-            
-            // Скрываем информацию о файле
-            if (fileInfo) {
-                fileInfo.style.display = 'none';
-            }
-            
-            // Отключаем кнопку загрузки
-            if (uploadBtn) {
-                uploadBtn.disabled = true;
-                uploadBtn.classList.add('disabled');
-                uploadBtn.innerHTML = '<i class="fas fa-upload me-1"></i>Загрузить файл';
-            }
-            
-            // Скрываем прогресс-бар
-            if (progressContainer) {
-                progressContainer.style.display = 'none';
-            }
-            
-            // Удаляем динамические алерты
-            const dynamicAlerts = document.querySelectorAll('.alert.dynamic-alert');
-            dynamicAlerts.forEach(alert => alert.remove());
-        }
-        
-        // Предотвращаем случайное закрытие страницы во время загрузки
-        let uploadInProgress = false;
-        
-        window.addEventListener('beforeunload', function(e) {
-            if (uploadInProgress) {
-                e.preventDefault();
-                e.returnValue = 'Загрузка файла в процессе. Вы уверены, что хотите покинуть страницу?';
-                return e.returnValue;
-            }
-        });
-        
-        // Переопределяем функцию uploadFile для отслеживания состояния
-        const originalUploadFile = window.uploadFile;
-        window.uploadFile = function() {
-            uploadInProgress = true;
-            
-            // Вызываем оригинальную функцию
-            originalUploadFile();
-            
-            // Сбрасываем флаг после завершения (через 30 секунд максимум)
-            setTimeout(() => {
-                uploadInProgress = false;
-            }, 30000);
-        };
-        
-        // Дополнительная проверка при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Страница загрузки готова');
-            
-            // Проверяем, есть ли уже загруженные данные
-            fetch('../api/upload.php?action=check_data')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.has_data) {
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert alert-info alert-dismissible fade show';
-                        alertDiv.innerHTML = `
-                            <i class="fas fa-info-circle me-2"></i>
-                            В базе данных уже есть ${data.count} записей. 
-                            Новые данные будут добавлены к существующим.
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        `;
-                        
-                        const alertContainer = document.getElementById('alertContainer');
-                        if (alertContainer) {
-                            alertContainer.appendChild(alertDiv);
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.log('Не удалось проверить существующие данные:', error);
-                });
-        });
-    </script>
+    <script src="../assets/js/upload.js"></script>
 </body>
 </html>
-
